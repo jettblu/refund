@@ -5,7 +5,8 @@ import styles from '../styles/Splash.module.css'
 import Link from 'next/link'
 import Navbar from '../components/Navbar'
 import { useState } from 'react'
-import { IUploadResult, uploadJsonToIpfs, uploadStreamToIpfs } from '../helpers/ipfs'
+import { storage } from '../helpers/firebase'
+import { getDownloadURL, ref, StorageReference, uploadBytes } from 'firebase/storage'
 
 
 const Create: NextPage = () => {
@@ -14,18 +15,21 @@ const Create: NextPage = () => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [imageUrl, setImageUrl] = useState("media/imgPlaceholder.png");
-
+  let fileInit:Blob = new Blob();
   //UNCOMMENT for file uploads
-  // const [image, setImage] = useState("File");
-  // const [createObjectURL, setCreateObjectURL] = useState("media/imgPlaceholder.png");
+  const [image, setImage] = useState(fileInit);
 
-  // const uploadToClient = (event:any) => {
-  //   if (event.target.files && event.target.files[0]) {
-  //     const i = event.target.files[0];
-  //     setImage(i);
-  //     setCreateObjectURL(URL.createObjectURL(i));
-  //   }
-  // };
+
+  const uploadToClient = (event:any) => {
+    if (event.target.files && event.target.files[0]) {
+      // extract file from event
+      const i:any = event.target.files[0];
+      // save file data
+      setImage(i);
+      // set local image url for display
+      setImageUrl(URL.createObjectURL(i));
+    }
+  };
 
   // const handleClickUpload = async () =>{
     
@@ -50,15 +54,41 @@ const Create: NextPage = () => {
 
   // }
 
+  const urlFromRef = async(storageRef:StorageReference):Promise<string>=>{
+    let urlResult:string = await getDownloadURL(storageRef);
+    return urlResult;
+  }
+
+  const uploadToRemote = async():Promise<string>=>{
+    console.log("firebase image upload starting....");
+    const storageRef = ref(storage, imageUrl);
+    // upload image to firebase
+    uploadBytes(storageRef, image).then((snapshot) => {
+      console.log(snapshot);
+      console.log('Uploaded a blob or file to firebase!');
+    });
+    let imageUploadUrl:string = await urlFromRef(storageRef);
+    return imageUploadUrl;
+  }
+
+
   const handleClickUpload = async() =>{
-    const metadata = {
-      name: name,
-      image: imageUrl,
-      description: description
-    };
-    var uploadJsonResult = await uploadJsonToIpfs(metadata);
-    console.log("Result of json upload:");
-    console.log(uploadJsonResult);
+    // upload file to firebase
+    let urlImageUpload = await uploadToRemote();
+    console.log(urlImageUpload);
+    // const metadata = {
+    //   name: name,
+    //   image: urlImageUpload,
+    //   description: description
+    // };
+    // let bodySubmit = JSON.stringify(metadata);
+    // console.log("Submitting upload data to IPFS:");
+    // console.log(bodySubmit);
+    // const response = await fetch("/api/meta", {
+    //   method: "post",
+    //   body: bodySubmit
+    // });
+    // console.log(response);
   }
 
   return (
@@ -88,7 +118,7 @@ const Create: NextPage = () => {
 
                       <label className="form-label inline-block mb-2 text-gray-700">
                         Image Path</label>
-                        <input type="text" placeholder="ex: https://picsum.photos/200/300.jpg" id="imageUrl" name="imageUrl"
+                        {/* <input type="text" placeholder="ex: https://picsum.photos/200/300.jpg" id="imageUrl" name="imageUrl"
                         className="block
                         w-full
                         px-2
@@ -102,8 +132,8 @@ const Create: NextPage = () => {
                         transition
                         ease-in-out
                         m-0
-                        focus:text-gray-700 focus:bg-white focus:border-blue-600 focus:outline-none" required onChange={(e) => setImageUrl(e.target.value)}></input>
-                        {/* <input className="form-control
+                        focus:text-gray-700 focus:bg-white focus:border-blue-600 focus:outline-none" required onChange={(e) => setImageUrl(e.target.value)}></input> */}
+                        <input className="form-control
                         block
                         w-full
                         px-3
@@ -118,7 +148,7 @@ const Create: NextPage = () => {
                         hover:cursor-pointer
                         ease-in-out
                         m-0
-                        focus:text-gray-700 focus:bg-white focus:border-blue-600 focus:outline-none" type="file" id="file" name="file" onChange={uploadToClient} required/> */}
+                        focus:text-gray-700 focus:bg-white focus:border-blue-600 focus:outline-none" type="file" id="file" name="file" onChange={uploadToClient} required/>
                       <label className="form-label inline-block mb-2 text-gray-700">
                       Name</label>
                                 

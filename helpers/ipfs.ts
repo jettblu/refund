@@ -7,6 +7,8 @@ import {pinataConfig} from "../secrets"
 const urlPinataFile:string = "https://api.pinata.cloud/pinning/pinFileToIPFS";
 const urlPinataJson:string = "https://api.pinata.cloud/pinning/pinJSONToIPFS"
 
+let pinata = pinataClient(pinataConfig.apiKey, pinataConfig.apiKeySecret);
+
 
 export interface IUploadResult {
     // This is the IPFS multi-hash provided back for your content
@@ -57,25 +59,33 @@ export const uploadStreamToIpfs = async (readableStreamForFile:ReadStream): Prom
 
 // uses pinata to upload json to ipfs.. return link to that data
 // used for uploading nft metadata
-export const uploadJsonToIpfs = (jsonInput:any): string => {
+export const uploadJsonToIpfs = async(jsonInput:Object): Promise<string> => {
     let pinUrl: string = "Not set yet!";
     console.log("Sending json input:");
     console.log(jsonInput);
     
-    axios
-    .post(urlPinataFile, jsonInput, {
-        headers: {
-            pinata_api_key: pinataConfig.apiKey,
-            pinata_secret_api_key: pinataConfig.apiKeySecret,
-        }
-    }).then((result)=>{
-        //handle results here
-        console.log("Pinata file upload result");
+    pinata.pinJSONToIPFS(jsonInput).then((result)=>{
+        console.log("Pinata upload result:");
         console.log(result);
-        pinUrl = urlFromHash(result.data.IpfsHash);
-    }).catch((err) => {
-        //handle error here
+        pinUrl = urlFromHash(result.IpfsHash);
+    }).catch((err)=>{
+        // handle error
         console.log(err);
     });
+    // axios
+    // .post(urlPinataFile, jsonInput, {
+    //     headers: {
+    //         pinata_api_key: pinataConfig.apiKey,
+    //         pinata_secret_api_key: pinataConfig.apiKeySecret,
+    //     }
+    // }).then((result)=>{
+    //     //handle results here
+    //     console.log("Pinata file upload result");
+    //     console.log(result);
+    //     pinUrl = urlFromHash(result.data.IpfsHash);
+    // }).catch((err) => {
+    //     //handle error here
+    //     console.log(err);
+    // });
     return pinUrl;
 }

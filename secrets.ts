@@ -1,4 +1,6 @@
 // private file for provider secrets
+// in production... this info. shld. not be public!
+// these keys are available for testing... that's it!
 
 export const pinataConfig = {
     apiKey: "c30aafc67f0c2f3a1065",
